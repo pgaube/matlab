@@ -1,0 +1,100 @@
+clear all
+tend=12
+dft=1:tend;
+xp=[dft dft(end) fliplr(dft) dft(1)];
+
+load pop_cor_feb_4
+vars={'ssh','norm_hp66_chl','norm_hp66_c','w',...
+    'diat_c','diaz_c','sp_c',...
+    'norm_hp66_diaz_c','norm_hp66_diat_c','norm_hp66_sp_c',...
+    'small_bio','diaz_bio','diat_bio',...
+    'nh4','no3','po4',...
+    'tnh4','tno3','tpo4',...
+    'small_vadv','diaz_vadv','diat_vadv',...
+    'small_pp','diaz_pp','diat_pp'};
+
+for m=1:length(vars)
+    
+    eval(['ts_a=',vars{m},'_a.ks_c(1:tend);'])
+    eval(['std_ts_a=',vars{m},'_a.ks_std_05(1:tend);'])
+    eval(['n_ts_a=',vars{m},'_a.ks_n(1:tend);'])
+    
+    eval(['ts_c=',vars{m},'_c.ks_c(1:tend);'])
+    eval(['std_ts_c=',vars{m},'_c.ks_std_05(1:tend);'])
+    eval(['n_ts_c=',vars{m},'_c.ks_n(1:tend);'])
+    
+    ci_a=abs(std_ts_a./sqrt(n_ts_a-1));
+    ci_c=abs(std_ts_c./sqrt(n_ts_c-1));
+    xts_a=[ts_a-ci_a ts_a(end)+ci_a(end) fliplr(ts_a+ci_a) ts_a(1)-ci_a(1)];
+    xts_c=[ts_c-ci_c ts_c(end)+ci_c(end) fliplr(ts_c+ci_c) ts_c(1)-ci_c(1)];
+    
+    figure(1)
+    clf
+    set(gcf,'PaperPosition',[1 1 10 5.5])
+    patch(xp,xts_a,[.8 .8 .8])
+    patch(xp,xts_c,[.8 .8 .8])
+    hold on
+    plot(dft,ts_a,'r','linewidth',4)
+    hold on
+    plot(dft,ts_c,'b','linewidth',4)
+    axis tight
+    
+    xlabel('eddy age (weeks)','fontsize',20,'fontweight','bold')
+    % ylabel(['mg m^{-3} per second?'],'fontsize',20,'fontweight','bold')
+    line([1 12],[0 0],'color','k','LineWidth',2)
+    set(gca,'fontsize',18,'fontweight','bold','LineWidth',2,'TickLength',[.01 .02],'layer','top')
+    set(gca,'xtick',[0:2:20])
+    box
+    title(vars{m})
+    eval(['print -dpng -r300 figs/cor_ts/',vars{m},'_ts'])
+end
+
+tend=12
+dft=1:tend;
+
+a_small_na=smooth1d_loess(sp_c_a.ks_c,1:length(sp_c_a.ks_c),5,dft)./max(sp_c_a.ks_c);
+a_diat_na=smooth1d_loess(diat_c_a.ks_c,1:length(diat_c_a.ks_c),5,dft)./max(diat_c_a.ks_c);
+a_diaz_na=smooth1d_loess(diaz_c_a.ks_c,1:length(diaz_c_a.ks_c),5,dft)./max(diaz_c_a.ks_c);
+
+a_sum_all=a_small_na+a_diat_na+a_diaz_na;
+a_prop_small=a_small_na./a_sum_all;
+a_prop_diat=a_diat_na./a_sum_all;
+a_prop_diaz=a_diaz_na./a_sum_all;
+
+c_small_na=smooth1d_loess(sp_c_c.ks_c,1:length(sp_c_c.ks_c),5,dft)./max(sp_c_c.ks_c);
+c_diat_na=smooth1d_loess(diat_c_c.ks_c,1:length(diat_c_c.ks_c),5,dft)./max(diat_c_c.ks_c);
+c_diaz_na=smooth1d_loess(diaz_c_c.ks_c,1:length(diaz_c_c.ks_c),5,dft)./max(diaz_c_c.ks_c);
+
+c_sum_all=c_small_na+c_diat_na+c_diaz_na;
+c_prop_small=c_small_na./c_sum_all;
+c_prop_diat=c_diat_na./c_sum_all;
+c_prop_diaz=c_diaz_na./c_sum_all;
+
+
+
+
+figure(1)
+clf
+set(gcf,'PaperPosition',[1 1 8 8])
+subplot(211)
+hold on
+plot(1:length(a_prop_diat),a_prop_diat,'k-*')
+plot(1:length(a_prop_diat),a_prop_small,'k')
+plot(1:length(a_prop_diat),a_prop_diaz,'k--')
+legend('diat','small','diaz')
+title('anticyclones')
+set(gca,'ylim',[.15 .5],'xlim',[1 12],'fontsize',10,'fontweight','bold','LineWidth',.5,'TickLength',[.01 .05],'layer','top')
+
+
+subplot(212)
+hold on
+plot(1:length(a_prop_diat),c_prop_diat,'k-*')
+plot(1:length(a_prop_diat),c_prop_small,'k')
+plot(1:length(a_prop_diat),c_prop_diaz,'k--')
+legend('diat','small','diaz')
+title('cyclones')
+set(gca,'ylim',[.2 .4],'xlim',[1 12],'fontsize',10,'fontweight','bold','LineWidth',.5,'TickLength',[.01 .05],'layer','top')
+xlabel('weeks')
+print -dpng -r300 figs/cor_ts/rings_diveristy_ks_c_L
+
+
